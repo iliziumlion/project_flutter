@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:lesson_share/models/counter_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -8,16 +11,14 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -35,17 +36,31 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   static const counterKey = 'counter';
+  static const counterInfoKey = 'counterInfo';
 
   int _counter = 0;
 
   @override
   void initState() {
     _initCounter();
+    _printCounterInfo();
     super.initState();
   }
 
   Future _initCounter() async {
     _counter = await _getCounter();
+  }
+
+  Future _printCounterInfo() async {
+    final counterInfo = await _getCounterInfo();
+
+    if (counterInfo == null) return;
+
+    print('==========');
+    print('value: ${counterInfo.value}');
+    print('lastUpdate: ${counterInfo.lastUpdate}');
+    print('userName: ${counterInfo.userName}');
+    print('==========');
   }
 
   void _incrementCounter() async {
@@ -54,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     await _setCounter();
+    await _setCounterInfo();
   }
 
   Future _setCounter() async {
@@ -61,16 +77,35 @@ class _MyHomePageState extends State<MyHomePage> {
     prefs.setInt(counterKey, _counter);
   }
 
+  Future _setCounterInfo() async {
+    var prefs = await SharedPreferences.getInstance();
+
+    final counterInfo = CounterInfo(
+      value: _counter,
+      lastUpdate: DateTime.now(),
+      userName: 'Alex',
+    );
+
+    prefs.setString(counterInfoKey, json.encode(counterInfo));
+  }
+
   Future<int> _getCounter() async {
     var prefs = await SharedPreferences.getInstance();
     return prefs.getInt(counterKey) ?? 0;
+  }
+
+  Future<CounterInfo?> _getCounterInfo() async {
+    var prefs = await SharedPreferences.getInstance();
+    final counterInfo = prefs.getString(counterInfoKey);
+    if (counterInfo == null) return null;
+
+    return CounterInfo.fromJson(json.decode(counterInfo));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
       body: Center(
@@ -82,7 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             Text(
               '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headline4,
             ),
           ],
         ),
